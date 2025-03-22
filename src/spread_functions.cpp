@@ -7,6 +7,8 @@
 
 #include "fires.hpp"
 #include "landscape.hpp"
+#include <iostream>
+#include <omp.h>
 
 double spread_probability(
     const Cell& burning, const Cell& neighbour, SimulationParams params, double angle,
@@ -40,7 +42,7 @@ double spread_probability(
 
 Fire simulate_fire(
     const Landscape& landscape, const std::vector<std::pair<size_t, size_t>>& ignition_cells,
-    SimulationParams params, double distance, double elevation_mean, double elevation_sd,
+    SimulationParams params, double distance, double elevation_mean, double elevation_sd, int &contador,
     double upper_limit = 1.0
 ) {
 
@@ -69,14 +71,16 @@ Fire simulate_fire(
     burned_bin[{ cell_0, cell_1 }] = 1;
   }
 
+  int t = omp_get_wtime();
   while (burning_size > 0) {
     size_t end_forward = end;
-
+    
     // Loop over burning cells in the cycle
-
+    
     // b is going to keep the position in burned_ids that have to be evaluated
     // in this burn cycle
     for (size_t b = start; b < end; b++) {
+      contador++;
       size_t burning_cell_0 = burned_ids[b].first;
       size_t burning_cell_1 = burned_ids[b].second;
 
@@ -145,6 +149,7 @@ Fire simulate_fire(
 
     burned_ids_steps.push_back(end);
   }
+  std::cerr << "Tiempo: " << omp_get_wtime() - t << std::endl;
 
   return { n_col, n_row, burned_bin, burned_ids, burned_ids_steps };
 }

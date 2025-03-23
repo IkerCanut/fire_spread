@@ -96,18 +96,37 @@ Fire simulate_fire(
 
       int neighbors_coords[2][8];
 
-      for (size_t i = 0; i < 8; i++) {
-        neighbors_coords[0][i] = int(burning_cell_0) + moves[i][0];
-        neighbors_coords[1][i] = int(burning_cell_1) + moves[i][1];
-      }
+      neighbors_coords[0][0] = int(burning_cell_0) + moves[0][0];
+      neighbors_coords[1][0] = int(burning_cell_1) + moves[0][1];
+      
+      neighbors_coords[0][1] = int(burning_cell_0) + moves[1][0];
+      neighbors_coords[1][1] = int(burning_cell_1) + moves[1][1];
+      
+      neighbors_coords[0][2] = int(burning_cell_0) + moves[2][0];
+      neighbors_coords[1][2] = int(burning_cell_1) + moves[2][1];
+      
+      neighbors_coords[0][3] = int(burning_cell_0) + moves[3][0];
+      neighbors_coords[1][3] = int(burning_cell_1) + moves[3][1];
+      
+      neighbors_coords[0][4] = int(burning_cell_0) + moves[4][0];
+      neighbors_coords[1][4] = int(burning_cell_1) + moves[4][1];
+      
+      neighbors_coords[0][5] = int(burning_cell_0) + moves[5][0];
+      neighbors_coords[1][5] = int(burning_cell_1) + moves[5][1];
+      
+      neighbors_coords[0][6] = int(burning_cell_0) + moves[6][0];
+      neighbors_coords[1][6] = int(burning_cell_1) + moves[6][1];
+      
+      neighbors_coords[0][7] = int(burning_cell_0) + moves[7][0];
+      neighbors_coords[1][7] = int(burning_cell_1) + moves[7][1];
+        
       // Note that in the case 0 - 1 we will have size_t_MAX
 
       // Loop over neighbors_coords of the focal burning cell
 
-      for (size_t n = 0; n < 8; n++) {
-
-        int neighbour_cell_0 = neighbors_coords[0][n];
-        int neighbour_cell_1 = neighbors_coords[1][n];
+      {
+        int neighbour_cell_0 = neighbors_coords[0][0];
+        int neighbour_cell_1 = neighbors_coords[1][0];
 
         // Is the cell in range?
         bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
@@ -130,7 +149,287 @@ Fire simulate_fire(
 
         // simulate fire
         double prob = spread_probability(
-            burning_cell, neighbour_cell, params, angles[n], distance, elevation_mean,
+            burning_cell, neighbour_cell, params, angles[0], distance, elevation_mean,
+            elevation_sd, upper_limit
+        );
+
+        // Burn with probability prob (Bernoulli)
+        bool burn = uniform_dist(rng) < prob;
+
+        if (burn == 0)
+          continue;
+
+        // If burned, store id of recently burned cell and set 1 in burned_bin
+        end_forward += 1;
+        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+      }
+      {
+        int neighbour_cell_0 = neighbors_coords[0][1];
+        int neighbour_cell_1 = neighbors_coords[1][1];
+
+        // Is the cell in range?
+        bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
+                            0 > neighbour_cell_1 || neighbour_cell_1 >= int(n_row);
+
+        if (out_of_range)
+          continue;
+
+        const Cell& neighbour_cell = landscape[{ neighbour_cell_0, neighbour_cell_1 }];
+
+        // Is the cell burnable?
+        bool burnable_cell =
+            !burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] && neighbour_cell.burnable;
+
+        if (!burnable_cell)
+          continue;
+
+        constexpr double angles[8] = { M_PI * 3 / 4, M_PI, M_PI * 5 / 4, M_PI / 2, M_PI * 3 / 2,
+                                       M_PI / 4,     0,    M_PI * 7 / 4 };
+
+        // simulate fire
+        double prob = spread_probability(
+            burning_cell, neighbour_cell, params, angles[1], distance, elevation_mean,
+            elevation_sd, upper_limit
+        );
+
+        // Burn with probability prob (Bernoulli)
+        bool burn = uniform_dist(rng) < prob;
+
+        if (burn == 0)
+          continue;
+
+        // If burned, store id of recently burned cell and set 1 in burned_bin
+        end_forward += 1;
+        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+      }
+      {
+        int neighbour_cell_0 = neighbors_coords[0][2];
+        int neighbour_cell_1 = neighbors_coords[1][2];
+
+        // Is the cell in range?
+        bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
+                            0 > neighbour_cell_1 || neighbour_cell_1 >= int(n_row);
+
+        if (out_of_range)
+          continue;
+
+        const Cell& neighbour_cell = landscape[{ neighbour_cell_0, neighbour_cell_1 }];
+
+        // Is the cell burnable?
+        bool burnable_cell =
+            !burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] && neighbour_cell.burnable;
+
+        if (!burnable_cell)
+          continue;
+
+        constexpr double angles[8] = { M_PI * 3 / 4, M_PI, M_PI * 5 / 4, M_PI / 2, M_PI * 3 / 2,
+                                       M_PI / 4,     0,    M_PI * 7 / 4 };
+
+        // simulate fire
+        double prob = spread_probability(
+            burning_cell, neighbour_cell, params, angles[2], distance, elevation_mean,
+            elevation_sd, upper_limit
+        );
+
+        // Burn with probability prob (Bernoulli)
+        bool burn = uniform_dist(rng) < prob;
+
+        if (burn == 0)
+          continue;
+
+        // If burned, store id of recently burned cell and set 1 in burned_bin
+        end_forward += 1;
+        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+      }
+      {
+        int neighbour_cell_0 = neighbors_coords[0][3];
+        int neighbour_cell_1 = neighbors_coords[1][3];
+
+        // Is the cell in range?
+        bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
+                            0 > neighbour_cell_1 || neighbour_cell_1 >= int(n_row);
+
+        if (out_of_range)
+          continue;
+
+        const Cell& neighbour_cell = landscape[{ neighbour_cell_0, neighbour_cell_1 }];
+
+        // Is the cell burnable?
+        bool burnable_cell =
+            !burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] && neighbour_cell.burnable;
+
+        if (!burnable_cell)
+          continue;
+
+        constexpr double angles[8] = { M_PI * 3 / 4, M_PI, M_PI * 5 / 4, M_PI / 2, M_PI * 3 / 2,
+                                       M_PI / 4,     0,    M_PI * 7 / 4 };
+
+        // simulate fire
+        double prob = spread_probability(
+            burning_cell, neighbour_cell, params, angles[3], distance, elevation_mean,
+            elevation_sd, upper_limit
+        );
+
+        // Burn with probability prob (Bernoulli)
+        bool burn = uniform_dist(rng) < prob;
+
+        if (burn == 0)
+          continue;
+
+        // If burned, store id of recently burned cell and set 1 in burned_bin
+        end_forward += 1;
+        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+      }
+      {
+        int neighbour_cell_0 = neighbors_coords[0][4];
+        int neighbour_cell_1 = neighbors_coords[1][4];
+
+        // Is the cell in range?
+        bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
+                            0 > neighbour_cell_1 || neighbour_cell_1 >= int(n_row);
+
+        if (out_of_range)
+          continue;
+
+        const Cell& neighbour_cell = landscape[{ neighbour_cell_0, neighbour_cell_1 }];
+
+        // Is the cell burnable?
+        bool burnable_cell =
+            !burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] && neighbour_cell.burnable;
+
+        if (!burnable_cell)
+          continue;
+
+        constexpr double angles[8] = { M_PI * 3 / 4, M_PI, M_PI * 5 / 4, M_PI / 2, M_PI * 3 / 2,
+                                       M_PI / 4,     0,    M_PI * 7 / 4 };
+
+        // simulate fire
+        double prob = spread_probability(
+            burning_cell, neighbour_cell, params, angles[4], distance, elevation_mean,
+            elevation_sd, upper_limit
+        );
+
+        // Burn with probability prob (Bernoulli)
+        bool burn = uniform_dist(rng) < prob;
+
+        if (burn == 0)
+          continue;
+
+        // If burned, store id of recently burned cell and set 1 in burned_bin
+        end_forward += 1;
+        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+      }
+      {
+        int neighbour_cell_0 = neighbors_coords[0][5];
+        int neighbour_cell_1 = neighbors_coords[1][5];
+
+        // Is the cell in range?
+        bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
+                            0 > neighbour_cell_1 || neighbour_cell_1 >= int(n_row);
+
+        if (out_of_range)
+          continue;
+
+        const Cell& neighbour_cell = landscape[{ neighbour_cell_0, neighbour_cell_1 }];
+
+        // Is the cell burnable?
+        bool burnable_cell =
+            !burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] && neighbour_cell.burnable;
+
+        if (!burnable_cell)
+          continue;
+
+        constexpr double angles[8] = { M_PI * 3 / 4, M_PI, M_PI * 5 / 4, M_PI / 2, M_PI * 3 / 2,
+                                       M_PI / 4,     0,    M_PI * 7 / 4 };
+
+        // simulate fire
+        double prob = spread_probability(
+            burning_cell, neighbour_cell, params, angles[5], distance, elevation_mean,
+            elevation_sd, upper_limit
+        );
+
+        // Burn with probability prob (Bernoulli)
+        bool burn = uniform_dist(rng) < prob;
+
+        if (burn == 0)
+          continue;
+
+        // If burned, store id of recently burned cell and set 1 in burned_bin
+        end_forward += 1;
+        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+      }
+      {
+        int neighbour_cell_0 = neighbors_coords[0][6];
+        int neighbour_cell_1 = neighbors_coords[1][6];
+
+        // Is the cell in range?
+        bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
+                            0 > neighbour_cell_1 || neighbour_cell_1 >= int(n_row);
+
+        if (out_of_range)
+          continue;
+
+        const Cell& neighbour_cell = landscape[{ neighbour_cell_0, neighbour_cell_1 }];
+
+        // Is the cell burnable?
+        bool burnable_cell =
+            !burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] && neighbour_cell.burnable;
+
+        if (!burnable_cell)
+          continue;
+
+        constexpr double angles[8] = { M_PI * 3 / 4, M_PI, M_PI * 5 / 4, M_PI / 2, M_PI * 3 / 2,
+                                       M_PI / 4,     0,    M_PI * 7 / 4 };
+
+        // simulate fire
+        double prob = spread_probability(
+            burning_cell, neighbour_cell, params, angles[6], distance, elevation_mean,
+            elevation_sd, upper_limit
+        );
+
+        // Burn with probability prob (Bernoulli)
+        bool burn = uniform_dist(rng) < prob;
+
+        if (burn == 0)
+          continue;
+
+        // If burned, store id of recently burned cell and set 1 in burned_bin
+        end_forward += 1;
+        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+      }
+      {
+        int neighbour_cell_0 = neighbors_coords[0][7];
+        int neighbour_cell_1 = neighbors_coords[1][7];
+
+        // Is the cell in range?
+        bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
+                            0 > neighbour_cell_1 || neighbour_cell_1 >= int(n_row);
+
+        if (out_of_range)
+          continue;
+
+        const Cell& neighbour_cell = landscape[{ neighbour_cell_0, neighbour_cell_1 }];
+
+        // Is the cell burnable?
+        bool burnable_cell =
+            !burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] && neighbour_cell.burnable;
+
+        if (!burnable_cell)
+          continue;
+
+        constexpr double angles[8] = { M_PI * 3 / 4, M_PI, M_PI * 5 / 4, M_PI / 2, M_PI * 3 / 2,
+                                       M_PI / 4,     0,    M_PI * 7 / 4 };
+
+        // simulate fire
+        double prob = spread_probability(
+            burning_cell, neighbour_cell, params, angles[7], distance, elevation_mean,
             elevation_sd, upper_limit
         );
 

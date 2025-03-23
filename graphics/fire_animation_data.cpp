@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
         landscape, ignition_cells, params, DISTANCE, ELEVATION_MEAN, ELEVATION_SD, contador,
         UPPER_LIMIT
     );
-    std::cerr << "contador: " << contador << std::endl;
+    // std::cerr << "contador: " << contador << std::endl;
 
     // Print the fire
 

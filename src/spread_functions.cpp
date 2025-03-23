@@ -46,6 +46,11 @@ Fire simulate_fire(
     double upper_limit = 1.0
 ) {
 
+  // Crear un generador de números aleatorios con mt19937
+  std::random_device rd;
+  std::mt19937 rng(rd());
+  std::uniform_real_distribution<double> uniform_dist(0.0, 1.0);
+
   size_t n_row = landscape.height;
   size_t n_col = landscape.width;
 
@@ -130,7 +135,7 @@ Fire simulate_fire(
         );
 
         // Burn with probability prob (Bernoulli)
-        bool burn = (double)rand() / (double)RAND_MAX < prob;
+        bool burn = uniform_dist(rng) < prob;
 
         if (burn == 0)
           continue;

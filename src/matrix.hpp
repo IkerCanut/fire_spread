@@ -18,14 +18,8 @@ template <typename T> struct Matrix {
     if (width != other.width || height != other.height) {
       return false;
     }
-
-    for (size_t i = 0; i < width * height; i++) {
-      if (elems[i] != other.elems[i]) {
-        return false;
-      }
-    }
-
-    return true;
+    
+    return elems == other.elems;
   };
 
   std::vector<T> elems;

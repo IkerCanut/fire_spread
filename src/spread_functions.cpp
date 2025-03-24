@@ -86,7 +86,6 @@ Fire simulate_fire(
     // b is going to keep the position in burned_ids that have to be evaluated
     // in this burn cycle
     for (size_t b = start; b < end; b++) {
-      contador++;
       size_t burning_cell_0 = burned_ids[b].first;
       size_t burning_cell_1 = burned_ids[b].second;
 
@@ -106,6 +105,7 @@ Fire simulate_fire(
       // Loop over neighbors_coords of the focal burning cell
 
       for (size_t n = 0; n < 8; n++) {
+        contador++;
 
         int neighbour_cell_0 = neighbors_coords[0][n];
         int neighbour_cell_1 = neighbors_coords[1][n];
@@ -152,7 +152,7 @@ Fire simulate_fire(
 
     burned_ids_steps.push_back(end);
   }
-  std::cerr << "Tiempo: " << omp_get_wtime() - t << std::endl;
+  std::cerr << "Celdas/ms: " << contador*1000/(omp_get_wtime() - t) << std::endl;
 
   return { n_col, n_row, burned_bin, burned_ids, burned_ids_steps };
 }

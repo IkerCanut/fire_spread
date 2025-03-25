@@ -52,7 +52,7 @@ elevation ∈ ℝ
 2) Dados los parámetros, calcular la probabilidad de que cada celda se queme haciendo muchas simulaciones.
 
 3) Estimar una función que diga que tan realistas son los incendios producidos por cada combinación de parámetros, usando datos de incendios reales. Esto también haciendo muchas simulaciones.
-   
+
    Este de hecho es el objetivo de el código original que estaba hecho parcialmente en R.
 
 ## Uso
@@ -75,7 +75,7 @@ Para generar una animación de un incendio:
 
 ## Links
 
-- [Repositorio del código original en el cual fue basado el lab](https://github.com/barberaivan/fire_spread).
+- [Repositorio del código original en el cual fue basado el lab](https://github.com/barberaivan/FireSpread).
 - [Paper en el que se uso un método similar pero mas simple](https://ri.conicet.gov.ar/bitstream/handle/11336/38304/CONICET_Digital_Nro.d2f95f9f-ea7f-49ea-8ac4-593883434965_A.pdf?sequence=2).
 - [Paper sobre el método estadístico que se usaría para estimar parámetros](http://proceedings.mlr.press/v33/wilkinson14.pdf).
 

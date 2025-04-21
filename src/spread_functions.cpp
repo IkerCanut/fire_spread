@@ -14,16 +14,19 @@
 alignas(32) constexpr int moves_x[8] = { -1, -1, -1, 0, 0, 1, 1, 1 };
 alignas(32) constexpr int moves_y[8] = { -1,  0,  1, -1, 1, -1, 0, 1 };
 
-double spread_probability(
-    const Cell& burning, const Cell& neighbour, SimulationParams params, double angle,
-    double distance, double elevation_mean, double elevation_sd, double upper_limit = 1.0
+constexpr float angles[8] = { M_PI * 3 / 4, M_PI,     M_PI * 5 / 4, M_PI / 2,
+  M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
+
+float spread_probability(
+    const Cell& burning, const Cell& neighbour, SimulationParams params, float angle,
+    float distance, float elevation_mean, float elevation_sd, float upper_limit = 1.0
 ) {
 
-  double slope_term = sin(atan((neighbour.elevation - burning.elevation) / distance));
-  double wind_term = cos(angle - burning.wind_direction);
-  double elev_term = (neighbour.elevation - elevation_mean) / elevation_sd;
+  float slope_term = sin(atan((neighbour.elevation - burning.elevation) / distance));
+  float wind_term = cos(angle - burning.wind_direction);
+  float elev_term = (neighbour.elevation - elevation_mean) / elevation_sd;
 
-  double linpred = params.independent_pred;
+  float linpred = params.independent_pred;
 
   if (neighbour.vegetation_type == SUBALPINE) {
     linpred += params.subalpine_pred;
@@ -39,21 +42,21 @@ double spread_probability(
   linpred += wind_term * params.wind_pred + elev_term * params.elevation_pred +
              slope_term * params.slope_pred;
 
-  double prob = upper_limit / (1 + exp(-linpred));
+  float prob = upper_limit / (1 + exp(-linpred));
 
   return prob;
 }
 
 Fire simulate_fire(
     const Landscape& landscape, const std::vector<std::pair<size_t, size_t>>& ignition_cells,
-    SimulationParams params, double distance, double elevation_mean, double elevation_sd, int &contador,
-    double upper_limit = 1.0
+    SimulationParams params, float distance, float elevation_mean, float elevation_sd, int &contador,
+    float upper_limit = 1.0
 ) {
 
   // Crear un generador de números aleatorios con mt19937
   std::random_device rd;
   std::mt19937 rng(rd());
-  std::uniform_real_distribution<double> uniform_dist(0.0, 1.0);
+  std::uniform_real_distribution<float> uniform_dist(0.0, 1.0);
 
   size_t n_row = landscape.height;
   size_t n_col = landscape.width;
@@ -77,9 +80,6 @@ Fire simulate_fire(
   for (size_t i = 0; i < end; i++) {
     burned_bin[ignition_cells[i]] = 1;
   }
-
-  constexpr double angles[8] = { M_PI * 3 / 4, M_PI,     M_PI * 5 / 4, M_PI / 2,
-                                 M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
 
   int t = omp_get_wtime();
   while (burning_size > 0) {
@@ -132,7 +132,7 @@ Fire simulate_fire(
           continue;
 
         // simulate fire
-        double prob = spread_probability(
+        float prob = spread_probability(
             burning_cell, neighbour_cell, params, angles[n], distance, elevation_mean,
             elevation_sd, upper_limit
         );

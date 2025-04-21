@@ -18,9 +18,7 @@ Matrix<size_t> burned_amounts_per_cell(
 
     for (size_t col = 0; col < landscape.width; col++) {
       for (size_t row = 0; row < landscape.height; row++) {
-        if (fire.burned_layer[{col, row}]) {
-          burned_amounts[{col, row}] += 1;
-        }
+        burned_amounts[{col, row}] += fire.burned_layer[{col, row}];
       }
     }
   }

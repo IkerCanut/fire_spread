@@ -71,10 +71,11 @@ Fire simulate_fire(
   Matrix<bool> burned_bin = Matrix<bool>(n_col, n_row);
 
   for (size_t i = 0; i < end; i++) {
-    size_t cell_0 = ignition_cells[i].first;
-    size_t cell_1 = ignition_cells[i].second;
-    burned_bin[{ cell_0, cell_1 }] = 1;
+    burned_bin[ignition_cells[i]] = 1;
   }
+
+  constexpr double angles[8] = { M_PI * 3 / 4, M_PI,     M_PI * 5 / 4, M_PI / 2,
+                                 M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
 
   int t = omp_get_wtime();
   while (burning_size > 0) {
@@ -85,14 +86,13 @@ Fire simulate_fire(
     // b is going to keep the position in burned_ids that have to be evaluated
     // in this burn cycle
     for (size_t b = start; b < end; b++) {
-      contador++;
       size_t burning_cell_0 = burned_ids[b].first;
       size_t burning_cell_1 = burned_ids[b].second;
 
       const Cell& burning_cell = landscape[{ burning_cell_0, burning_cell_1 }];
 
-      constexpr int moves[8][2] = { { -1, -1 }, { -1, 0 }, { -1, 1 }, { 0, -1 },
-                                    { 0, 1 },   { 1, -1 }, { 1, 0 },  { 1, 1 } };
+      constexpr int moves[8][2] = { { -1, -1 }, { -1,  0 }, { -1, 1 }, { 0, -1 },
+                                    {  0,  1 }, {  1, -1 }, {  1, 0 }, { 1,  1 } };
 
       int neighbors_coords[2][8];
 
@@ -105,6 +105,7 @@ Fire simulate_fire(
       // Loop over neighbors_coords of the focal burning cell
 
       for (size_t n = 0; n < 8; n++) {
+        contador++;
 
         int neighbour_cell_0 = neighbors_coords[0][n];
         int neighbour_cell_1 = neighbors_coords[1][n];
@@ -124,9 +125,6 @@ Fire simulate_fire(
 
         if (!burnable_cell)
           continue;
-
-        constexpr double angles[8] = { M_PI * 3 / 4, M_PI, M_PI * 5 / 4, M_PI / 2, M_PI * 3 / 2,
-                                       M_PI / 4,     0,    M_PI * 7 / 4 };
 
         // simulate fire
         double prob = spread_probability(
@@ -154,7 +152,7 @@ Fire simulate_fire(
 
     burned_ids_steps.push_back(end);
   }
-  std::cerr << "Tiempo: " << omp_get_wtime() - t << std::endl;
+  std::cerr << "Celdas/ms: " << contador*1000/(omp_get_wtime() - t) << std::endl;
 
   return { n_col, n_row, burned_bin, burned_ids, burned_ids_steps };
 }

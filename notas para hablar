@@ -1,0 +1,21 @@
+Hay que hacer un breve resumen de lo ultimo que dijimos en el otro y sus resultados.
+Aclarar de que version salimos.
+
+# COSAS PARA PROBAR: 
+
+## Opciones directas de compilado
+
+GCC
+-O3 -ftree-vectorize -fopt-info-vec-optimized -march=native
+
+CLANG
+-O3 -Rpass=loop-vectorize -Rpass=loop-interchange -march=native
+
+## Vectorizacion manual con intrinsics
+
+Hay varios patrones en tu código que bloquean la vectorización.
+- Acceso indirecto con mapas (landscape[{i,j}]): Cualquier acceso dinámico o no lineal a memoria rompe vectorización.
+- Condicionales múltiples (if anidados).
+- Llamadas a funciones (como spread_probability) dentro del loop: pueden ser barreras.
+- Estructuras complicadas (std::pair, std::map): el autovectorizador prefiere arrays/estructuras planas.
+

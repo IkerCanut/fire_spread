@@ -9,6 +9,10 @@
 #include "landscape.hpp"
 #include <iostream>
 #include <omp.h>
+#include <immintrin.h>
+
+alignas(32) constexpr int moves_x[8] = { -1, -1, -1, 0, 0, 1, 1, 1 };
+alignas(32) constexpr int moves_y[8] = { -1,  0,  1, -1, 1, -1, 0, 1 };
 
 constexpr float angles[8] = { M_PI * 3 / 4, M_PI,     M_PI * 5 / 4, M_PI / 2,
   M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
@@ -80,7 +84,7 @@ Fire simulate_fire(
   int t = omp_get_wtime();
   while (burning_size > 0) {
     size_t end_forward = end;
-    
+
     // Loop over burning cells in the cycle
     
     // b is going to keep the position in burned_ids that have to be evaluated
@@ -91,18 +95,19 @@ Fire simulate_fire(
 
       const Cell& burning_cell = landscape[{ burning_cell_0, burning_cell_1 }];
 
-      constexpr int moves[8][2] = { { -1, -1 }, { -1,  0 }, { -1, 1 }, { 0, -1 },
-                                    {  0,  1 }, {  1, -1 }, {  1, 0 }, { 1,  1 } };
-
       int neighbors_coords[2][8];
 
-      for (size_t i = 0; i < 8; i++) {
-        neighbors_coords[0][i] = int(burning_cell_0) + moves[i][0];
-        neighbors_coords[1][i] = int(burning_cell_1) + moves[i][1];
-      }
-      // Note that in the case 0 - 1 we will have size_t_MAX
+        __m256i bc0 = _mm256_set1_epi32(int(burning_cell_0));
+        __m256i bc1 = _mm256_set1_epi32(int(burning_cell_1));
+        __m256i mvx = _mm256_load_si256((__m256i*)moves_x);
+        __m256i mvy = _mm256_load_si256((__m256i*)moves_y);
 
-      // Loop over neighbors_coords of the focal burning cell
+        __m256i nc0 = _mm256_add_epi32(bc0, mvx);
+        __m256i nc1 = _mm256_add_epi32(bc1, mvy);
+
+        _mm256_storeu_si256((__m256i*)neighbors_coords[0], nc0);
+        _mm256_storeu_si256((__m256i*)neighbors_coords[1], nc1);
+        // ---------------------------------------------------
 
       for (size_t n = 0; n < 8; n++) {
         contador++;

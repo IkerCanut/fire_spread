@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -Werror -fopenmp -Ofast -march=native -funroll-loops -ffast-math -mavx2 -mfma
+CXXFLAGS = -Wall -Wextra -Werror -fopenmp -Ofast -march=native -funroll-loops -ffast-math -mavx2 -mfma -ftree-vectorize -fopt-info-vec-optimized
 INCLUDE = -I./src
 CXXCMD = $(CXX) $(CXXFLAGS) $(INCLUDE)
 

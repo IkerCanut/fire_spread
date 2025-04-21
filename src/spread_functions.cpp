@@ -97,17 +97,17 @@ Fire simulate_fire(
 
       int neighbors_coords[2][8];
 
-        __m256i bc0 = _mm256_set1_epi32(int(burning_cell_0));
-        __m256i bc1 = _mm256_set1_epi32(int(burning_cell_1));
-        __m256i mvx = _mm256_load_si256((__m256i*)moves_x);
-        __m256i mvy = _mm256_load_si256((__m256i*)moves_y);
+      __m256i bc0 = _mm256_set1_epi32(int(burning_cell_0));
+      __m256i bc1 = _mm256_set1_epi32(int(burning_cell_1));
+      __m256i mvx = _mm256_load_si256((__m256i*)moves_x);
+      __m256i mvy = _mm256_load_si256((__m256i*)moves_y);
 
-        __m256i nc0 = _mm256_add_epi32(bc0, mvx);
-        __m256i nc1 = _mm256_add_epi32(bc1, mvy);
+      __m256i nc0 = _mm256_add_epi32(bc0, mvx);
+      __m256i nc1 = _mm256_add_epi32(bc1, mvy);
 
-        _mm256_storeu_si256((__m256i*)neighbors_coords[0], nc0);
-        _mm256_storeu_si256((__m256i*)neighbors_coords[1], nc1);
-        // ---------------------------------------------------
+      _mm256_storeu_si256((__m256i*)neighbors_coords[0], nc0);
+      _mm256_storeu_si256((__m256i*)neighbors_coords[1], nc1);
+      // ---------------------------------------------------
 
       for (size_t n = 0; n < 8; n++) {
         contador++;

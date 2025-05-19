@@ -17,6 +17,9 @@ alignas(32) constexpr int moves_y[8] = { -1,  0,  1, -1, 1, -1, 0, 1 };
 constexpr float angles[8] = { M_PI * 3 / 4, M_PI,     M_PI * 5 / 4, M_PI / 2,
   M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
 
+constexpr int moves[8][2] = { { -1, -1 }, { -1,  0 }, { -1, 1 }, { 0, -1 },
+  {  0,  1 }, {  1, -1 }, {  1, 0 }, { 1,  1 } };
+
 float spread_probability(
     const Cell& burning, const Cell& neighbour, SimulationParams params, float angle,
     float distance, float elevation_mean, float elevation_sd, float upper_limit = 1.0
@@ -84,43 +87,28 @@ Fire simulate_fire(
   int t = omp_get_wtime();
   while (burning_size > 0) {
     size_t end_forward = end;
-    size_t current_start = start;
-    size_t current_end = end;
 
-    #pragma omp parallel
-    {
-    std::vector<std::pair<size_t, size_t>> local_burned_this_step;
-    std::random_device local_rd;
-    std::mt19937 local_rng(local_rd());
-    std::uniform_real_distribution<float> local_uniform_dist(0.0, 1.0);
-    int local_contador = 0;
-
-    #pragma omp for
-    for (size_t b = current_start; b < current_end; ++b) {
+    // Loop over burning cells in the cycle
+    
+    // b is going to keep the position in burned_ids that have to be evaluated
+    // in this burn cycle
+    for (size_t b = start; b < end; b++) {
       size_t burning_cell_0 = burned_ids[b].first;
       size_t burning_cell_1 = burned_ids[b].second;
 
       const Cell& burning_cell = landscape[{ burning_cell_0, burning_cell_1 }];
 
-      int neighbors_coords[2][8];
-
-      __m256i bc0 = _mm256_set1_epi32(int(burning_cell_0));
-      __m256i bc1 = _mm256_set1_epi32(int(burning_cell_1));
-      __m256i mvx = _mm256_load_si256((__m256i*)moves_x);
-      __m256i mvy = _mm256_load_si256((__m256i*)moves_y);
-
-      __m256i nc0 = _mm256_add_epi32(bc0, mvx);
-      __m256i nc1 = _mm256_add_epi32(bc1, mvy);
-
-      _mm256_storeu_si256((__m256i*)neighbors_coords[0], nc0);
-      _mm256_storeu_si256((__m256i*)neighbors_coords[1], nc1);
       // ---------------------------------------------------
 
+      #pragma omp parallel for default(none) shared(burned_bin, landscape, burned_ids) private(burning_cell, burning_cell_0, burning_cell_1, moves, n_col, n_row, upper_limit, uniform_dist, elevation_mean, elevation_sd, distance, angles, params, rng) reduction(+:contador) reduction(+:end_forward)
       for (size_t n = 0; n < 8; n++) {
-        local_contador++;
+        contador++;
+        int neighbors_coords[2];
+        neighbors_coords[0] = int(burning_cell_0) + moves[n][0];
+        neighbors_coords[1] = int(burning_cell_1) + moves[n][1];
 
-        int neighbour_cell_0 = neighbors_coords[0][n];
-        int neighbour_cell_1 = neighbors_coords[1][n];
+        int neighbour_cell_0 = neighbors_coords[0];
+        int neighbour_cell_1 = neighbors_coords[1];
 
         // Is the cell in range?
         bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
@@ -145,21 +133,15 @@ Fire simulate_fire(
         );
 
         // Burn with probability prob (Bernoulli)
-          if (local_uniform_dist(local_rng) < prob) {
-            local_burned_this_step.push_back({ neighbour_cell_0, neighbour_cell_1 });
-          }
-        }
-      }
-      #pragma omp critical
-      {
-        for (const auto& burned_cell : local_burned_this_step) {
-          if (!burned_bin[burned_cell]) {
-            burned_ids.push_back(burned_cell);
-            burned_bin[burned_cell] = true;
-            end_forward++;
-          }
-        }
-        contador += local_contador;
+        bool burn = uniform_dist(rng) < prob;
+
+        if (burn == 0)
+          continue;
+
+        // If burned, store id of recently burned cell and set 1 in burned_bin
+        end_forward ++;
+        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
       }
     }
 

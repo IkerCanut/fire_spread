@@ -4,6 +4,7 @@
 #include <cmath>
 #include <random>
 #include <vector>
+#include <utility>
 
 #include "fires.hpp"
 #include "landscape.hpp"
@@ -16,9 +17,6 @@ alignas(32) constexpr int moves_y[8] = { -1,  0,  1, -1, 1, -1, 0, 1 };
 
 constexpr float angles[8] = { M_PI * 3 / 4, M_PI,     M_PI * 5 / 4, M_PI / 2,
   M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
-
-constexpr int moves[8][2] = { { -1, -1 }, { -1,  0 }, { -1, 1 }, { 0, -1 },
-  {  0,  1 }, {  1, -1 }, {  1, 0 }, { 1,  1 } };
 
 float spread_probability(
     const Cell& burning, const Cell& neighbour, SimulationParams params, float angle,
@@ -56,10 +54,16 @@ Fire simulate_fire(
     float upper_limit = 1.0
 ) {
 
-  // Crear un generador de números aleatorios con mt19937
-  std::random_device rd;
-  std::mt19937 rng(rd());
-  std::uniform_real_distribution<float> uniform_dist(0.0, 1.0);
+  // Crear generadores de números aleatorios por hilo
+  std::vector<std::mt19937> rng_per_thread;
+  std::vector<std::uniform_real_distribution<float>> dist_per_thread;
+  unsigned int initial_seed = std::random_device{}();
+  int max_threads = omp_get_max_threads();
+  for (int i = 0; i < max_threads; ++i) {
+    rng_per_thread.emplace_back(initial_seed + i);
+    dist_per_thread.emplace_back(0.0f, 1.0f);
+  }
+
 
   size_t n_row = landscape.height;
   size_t n_col = landscape.width;
@@ -89,7 +93,7 @@ Fire simulate_fire(
     size_t end_forward = end;
 
     // Loop over burning cells in the cycle
-    
+
     // b is going to keep the position in burned_ids that have to be evaluated
     // in this burn cycle
     for (size_t b = start; b < end; b++) {
@@ -98,17 +102,31 @@ Fire simulate_fire(
 
       const Cell& burning_cell = landscape[{ burning_cell_0, burning_cell_1 }];
 
+      int neighbors_coords[2][8];
+
+      __m256i bc0 = _mm256_set1_epi32(int(burning_cell_0));
+      __m256i bc1 = _mm256_set1_epi32(int(burning_cell_1));
+      __m256i mvx = _mm256_load_si256((__m256i*)moves_x);
+      __m256i mvy = _mm256_load_si256((__m256i*)moves_y);
+
+      __m256i nc0 = _mm256_add_epi32(bc0, mvx);
+      __m256i nc1 = _mm256_add_epi32(bc1, mvy);
+
+      _mm256_storeu_si256((__m256i*)neighbors_coords[0], nc0);
+      _mm256_storeu_si256((__m256i*)neighbors_coords[1], nc1);
       // ---------------------------------------------------
 
-      #pragma omp parallel for default(none) shared(burned_bin, landscape, burned_ids) private(burning_cell, burning_cell_0, burning_cell_1, moves, n_col, n_row, upper_limit, uniform_dist, elevation_mean, elevation_sd, distance, angles, params, rng) reduction(+:contador) reduction(+:end_forward)
-      for (size_t n = 0; n < 8; n++) {
+      // Paralelizar el bucle sobre los 8 vecinos
+      #pragma omp parallel for reduction(+:contador) \
+          shared(landscape, burning_cell, params, angles, distance, elevation_mean, elevation_sd, upper_limit, \
+                 n_col, n_row, neighbors_coords, burned_ids, burned_bin, end_forward, \
+                 rng_per_thread, dist_per_thread, std::cerr) \
+          default(none)
+      for (size_t n = 0; n < 8; n++) { // <<< ACA
         contador++;
-        int neighbors_coords[2];
-        neighbors_coords[0] = int(burning_cell_0) + moves[n][0];
-        neighbors_coords[1] = int(burning_cell_1) + moves[n][1];
 
-        int neighbour_cell_0 = neighbors_coords[0];
-        int neighbour_cell_1 = neighbors_coords[1];
+        int neighbour_cell_0 = neighbors_coords[0][n];
+        int neighbour_cell_1 = neighbors_coords[1][n];
 
         // Is the cell in range?
         bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
@@ -133,15 +151,20 @@ Fire simulate_fire(
         );
 
         // Burn with probability prob (Bernoulli)
-        bool burn = uniform_dist(rng) < prob;
+        int thread_num = omp_get_thread_num();
+        bool burn = dist_per_thread[thread_num](rng_per_thread[thread_num]) < prob;
 
         if (burn == 0)
           continue;
 
-        // If burned, store id of recently burned cell and set 1 in burned_bin
-        end_forward ++;
-        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
-        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+        #pragma omp critical (UpdateBurnedData)
+        {
+          if (!burned_bin[{ neighbour_cell_0, neighbour_cell_1 }]) { // Asegurarse una vez más antes de escribir
+             end_forward += 1; // end_forward es el nuevo 'end' para la siguiente iteración del while
+             burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
+             burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+          }
+        }
       }
     }
 

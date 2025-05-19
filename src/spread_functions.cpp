@@ -116,13 +116,12 @@ Fire simulate_fire(
       _mm256_storeu_si256((__m256i*)neighbors_coords[1], nc1);
       // ---------------------------------------------------
 
-      // Paralelizar el bucle sobre los 8 vecinos
       #pragma omp parallel for reduction(+:contador) \
           shared(landscape, burning_cell, params, angles, distance, elevation_mean, elevation_sd, upper_limit, \
                  n_col, n_row, neighbors_coords, burned_ids, burned_bin, end_forward, \
-                 rng_per_thread, dist_per_thread, std::cerr) \
+                 rng_per_thread, dist_per_thread) \
           default(none)
-      for (size_t n = 0; n < 8; n++) { // <<< ACA
+      for (size_t n = 0; n < 8; n++) {
         contador++;
 
         int neighbour_cell_0 = neighbors_coords[0][n];
@@ -157,14 +156,12 @@ Fire simulate_fire(
         if (burn == 0)
           continue;
 
-        #pragma omp critical (UpdateBurnedData)
+        #pragma omp critical
         {
-          if (!burned_bin[{ neighbour_cell_0, neighbour_cell_1 }]) { // Asegurarse una vez más antes de escribir
-             end_forward += 1; // end_forward es el nuevo 'end' para la siguiente iteración del while
-             burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
-             burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
-          }
+          end_forward += 1;
+          burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
         }
+        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
       }
     }
 

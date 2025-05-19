@@ -54,7 +54,6 @@ Fire simulate_fire(
     float upper_limit = 1.0
 ) {
 
-  // Crear generadores de números aleatorios por hilo
   std::vector<std::mt19937> rng_per_thread;
   std::vector<std::uniform_real_distribution<float>> dist_per_thread;
   unsigned int initial_seed = std::random_device{}();

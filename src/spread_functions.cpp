@@ -88,7 +88,7 @@ Fire simulate_fire(
     burned_bin[ignition_cells[i]] = 1;
   }
 
-  int t = omp_get_wtime();
+  double t = omp_get_wtime();
   while (burning_size > 0) {
     size_t end_forward = end;
 
@@ -172,7 +172,8 @@ Fire simulate_fire(
 
     burned_ids_steps.push_back(end);
   }
-  std::cerr << "Celdas/ms: " << contador*1000/(omp_get_wtime() - t) << std::endl;
+  double t2 = omp_get_wtime() - t;
+  std::cerr << "Celdas/ms: " << contador*1000/(t2) << std::endl;
 
   return { n_col, n_row, burned_bin, burned_ids, burned_ids_steps };
 }

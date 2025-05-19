@@ -84,12 +84,19 @@ Fire simulate_fire(
   int t = omp_get_wtime();
   while (burning_size > 0) {
     size_t end_forward = end;
+    size_t current_start = start;
+    size_t current_end = end;
 
-    // Loop over burning cells in the cycle
-    
-    // b is going to keep the position in burned_ids that have to be evaluated
-    // in this burn cycle
-    for (size_t b = start; b < end; b++) {
+    #pragma omp parallel
+    {
+    std::vector<std::pair<size_t, size_t>> local_burned_this_step;
+    std::random_device local_rd;
+    std::mt19937 local_rng(local_rd());
+    std::uniform_real_distribution<float> local_uniform_dist(0.0, 1.0);
+    int local_contador = 0;
+
+    #pragma omp for
+    for (size_t b = current_start; b < current_end; ++b) {
       size_t burning_cell_0 = burned_ids[b].first;
       size_t burning_cell_1 = burned_ids[b].second;
 
@@ -110,7 +117,7 @@ Fire simulate_fire(
       // ---------------------------------------------------
 
       for (size_t n = 0; n < 8; n++) {
-        contador++;
+        local_contador++;
 
         int neighbour_cell_0 = neighbors_coords[0][n];
         int neighbour_cell_1 = neighbors_coords[1][n];
@@ -138,15 +145,21 @@ Fire simulate_fire(
         );
 
         // Burn with probability prob (Bernoulli)
-        bool burn = uniform_dist(rng) < prob;
-
-        if (burn == 0)
-          continue;
-
-        // If burned, store id of recently burned cell and set 1 in burned_bin
-        end_forward += 1;
-        burned_ids.push_back({ neighbour_cell_0, neighbour_cell_1 });
-        burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+          if (local_uniform_dist(local_rng) < prob) {
+            local_burned_this_step.push_back({ neighbour_cell_0, neighbour_cell_1 });
+          }
+        }
+      }
+      #pragma omp critical
+      {
+        for (const auto& burned_cell : local_burned_this_step) {
+          if (!burned_bin[burned_cell]) {
+            burned_ids.push_back(burned_cell);
+            burned_bin[burned_cell] = true;
+            end_forward++;
+          }
+        }
+        contador += local_contador;
       }
     }
 

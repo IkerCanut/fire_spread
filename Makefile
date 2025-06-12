@@ -1,5 +1,5 @@
-CXX = g++
-CXXFLAGS = -Wall -Wextra -Werror -fopenmp -Ofast -march=native -funroll-loops -ffast-math
+CXX = nvcc
+CXXFLAGS = -O3 -Xcompiler "-Wall -Wextra -Werror -fopenmp"
 INCLUDE = -I./src
 CXXCMD = $(CXX) $(CXXFLAGS) $(INCLUDE)
 

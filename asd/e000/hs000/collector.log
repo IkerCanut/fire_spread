@@ -1,0 +1,46 @@
+Collection status has changed. 1
+Collection has been started.
+Collection has stopped. Application exit code:  0
+Finalizing results
+Finalizing the result
+Clearing the database
+The database has been cleared, elapsed time is 0.208 seconds.
+Loading raw data to the database
+Loading 'systemcollector-112613-canut.sc' file
+Loading '112613-112625.0.trace' file
+Updating precomputed scalar metrics
+Raw data has been loaded to the database, elapsed time is 0.066 seconds.
+Processing profile metrics and debug information
+Data transformations have been finished, elapsed time is 0.001 seconds.
+Setting data model parameters
+Resolving module symbols
+Resolving information for `fire_animation_data'
+Resolving information for `libgomp.so.1'
+Warning: Cannot locate debugging information for file `/lib/x86_64-linux-gnu/libgomp.so.1'.
+Resolving information for `libc.so.6'
+Resolving information for `libstdc++.so.6'
+Warning: Cannot locate debugging information for file `/lib/x86_64-linux-gnu/libstdc++.so.6'.
+Resolving bottom user stack information
+Resolving thread name information
+Resolving call target names for dynamic code
+Symbol resolution has been finished, elapsed time is 0.335 seconds.
+Processing profile metrics and debug information
+Deferred data transformations have been finished, elapsed time is 0.002 seconds.
+Setting data model parameters
+Data model parameters have been set, elapsed time is 0.005 seconds.
+Precomputing frequently used data
+Precomputing frequently used data
+Updating precomputed scalar metrics
+Precomputing frequently used data has been finished, elapsed time is 0.012 seconds.
+Discarding redundant overtime data
+Saving the result
+Redundant overtime data has been discarded, elapsed time is 0.001 seconds.
+Raw collector data has been discarded, elapsed time is 0.000 seconds.
+Finalizing the result took 0.652 seconds.
+Preparing data for display of survey call tree
+Resolving module symbols
+Resolving information for dangling locations
+Resolving bottom user stack information
+Resolving thread name information
+Resolving call target names for dynamic code
+Precomputing frequently used data

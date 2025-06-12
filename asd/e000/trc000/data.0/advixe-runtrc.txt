@@ -1,0 +1,10 @@
+
+=== Start: [2025/05/20 10:03:25] === 
+Peak bandwidth measurement started...
+Peak bandwidth measurement finished.
+Analysis started...
+Result file: /home/canut/Desktop/Computacion Paralela/fire_spread/asd/e000/trc000/trc000.advixe 
+Application exit code: 0 
+Result file: /home/canut/Desktop/Computacion Paralela/fire_spread/asd/e000/trc000/trc000.advixe 
+Analysis completed
+=== End: [2025/05/20 10:03:39] === 

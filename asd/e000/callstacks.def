@@ -1,0 +1,37 @@
+# callstacks file version: 8
+#    rowid	    parent	       rva	 loop	 system	                                function	binary	instance_start_rva	instance_size	instance_end_rva	finst_rowid	roi	is_inlined	jit_method_id	tripcounts_roi	flops_roi	cachesim_roi	data_transfer_roi	projection_roi
+         1	        -1	     14400	    0	      0	                                  _start	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	14400	38	0	2	0	0	0	0	0	0	0	0
+         2	        -1	     14436	    0	      0	                                  _start	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	14400	38	0	2	0	0	0	0	0	0	0	0
+         3	        17	    172682	    1	      1	[Loop at line 347 in __libc_start_main_impl]	/lib/x86_64-linux-gnu/libc.so.6	172651,172784	132,64	0	15	0	0	0	0	0	0	0	0
+         4	         3	    172489	    0	      1	                  __libc_start_call_main	/lib/x86_64-linux-gnu/libc.so.6	172368	164	0	17	0	0	0	0	0	0	0	0
+         5	         4	     13347	    0	      0	                                    main	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	12752	1602	0	3	0	0	0	0	0	0	0	0
+         6	        26	     31268	    1	      0	          [Loop@0x78e0 in simulate_fire]	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	30944	348	31292	9	0	0	0	0	0	0	0	0
+         7	         6	     96352	    0	      1	                           GOMP_parallel	/lib/x86_64-linux-gnu/libgomp.so.1	96288	143	0	1	0	0	0	0	0	0	0	0
+         8	        33	    136966	    1	      1	          [Loop@0x21628 in func@0x21310]	/lib/x86_64-linux-gnu/libgomp.so.1	136744,138120,138200,138896,139064,139789	398,77,30,46,74,78	0	4	0	0	0	0	0	0	0	0
+         9	        29	     13803	    1	      0	                   [Loop@0x3530 in main]	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	13616,14079	369,13	14000,14167	12	0	0	0	0	0	0	0	0
+        10	         9	   1311092	    0	      1	                       std::ostream::put	/lib/x86_64-linux-gnu/libstdc++.so.6	1310944	345	0	8	0	0	0	0	0	0	0	0
+        11	        10	    587233	    0	      1	                           __GI__IO_putc	/lib/x86_64-linux-gnu/libc.so.6	586864	446	0	18	0	0	0	0	0	0	0	0
+        12	        11	    601842	    0	      1	                   _IO_new_file_overflow	/lib/x86_64-linux-gnu/libc.so.6	601584	536	0	19	0	0	0	0	0	0	0	0
+        13	        19	    599408	    0	      1	                            new_do_write	/lib/x86_64-linux-gnu/libc.so.6	0,599254,599273,599281,599358,599475,599504	0,7,0,72,112,5,98	0	20	0	1	0	0	0	0	0	0
+        14	        21	    604532	    1	      1	[Loop at line 1176 in _IO_new_file_write]	/lib/x86_64-linux-gnu/libc.so.6	604528	48	0	22	0	0	0	0	0	0	0	0
+        15	        23	   1164717	    0	      1	                       __GI___libc_write	/lib/x86_64-linux-gnu/libc.so.6	1164691,1164776	50,21	0	24	0	1	0	0	0	0	0	0
+        16	        -1	    135040	    0	      1	                            func@0x20f80	/lib/x86_64-linux-gnu/libgomp.so.1	135040	384	0	14	0	0	0	0	0	0	0	0
+        17	         2	    172651	    0	      1	                  __libc_start_main_impl	/lib/x86_64-linux-gnu/libc.so.6	172544	334	0	16	0	0	0	0	0	0	0	0
+        18	         2	    172682	    0	      1	                  __libc_start_main_impl	/lib/x86_64-linux-gnu/libc.so.6	172544	334	0	16	0	0	0	0	0	0	0	0
+        19	        12	    599254	    0	      1	                        _IO_new_do_write	/lib/x86_64-linux-gnu/libc.so.6	599232	370	0	21	0	0	0	0	0	0	0	0
+        20	        12	    599408	    0	      1	                        _IO_new_do_write	/lib/x86_64-linux-gnu/libc.so.6	599232	370	0	21	0	0	0	0	0	0	0	0
+        21	        13	    604528	    0	      1	                      _IO_new_file_write	/lib/x86_64-linux-gnu/libc.so.6	604480	156	0	23	0	0	0	0	0	0	0	0
+        22	        13	    604532	    0	      1	                      _IO_new_file_write	/lib/x86_64-linux-gnu/libc.so.6	604480	156	0	23	0	0	0	0	0	0	0	0
+        23	        14	   1164691	    0	      1	                       __GI___libc_write	/lib/x86_64-linux-gnu/libc.so.6	1164640	157	0	25	0	0	0	0	0	0	0	0
+        24	        14	   1164717	    0	      1	                       __GI___libc_write	/lib/x86_64-linux-gnu/libc.so.6	1164640	157	0	25	0	0	0	0	0	0	0	0
+        25	         5	     30880	    0	      0	                           simulate_fire	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	29168	5417	0	10	0	0	0	0	0	0	0	0
+        26	        25	     30944	    1	      0	          [Loop@0x78a0 in simulate_fire]	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	30880,31827	484,66	31893	11	0	0	0	0	0	0	0	0
+        27	         5	     31268	    0	      0	                           simulate_fire	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	29168	5417	0	10	0	0	0	0	0	0	0	0
+        28	         4	     13488	    0	      0	                                    main	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	12752	1602	0	3	0	0	0	0	0	0	0	0
+        29	        28	     13616	    1	      0	                   [Loop@0x34b0 in main]	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	13488,13616,14000,14079	116,369,24,13	14024,14167,14024	13	0	0	0	0	0	0	0	0
+        30	         4	     13803	    0	      0	                                    main	/home/canut/Desktop/Computacion Paralela/fire_spread/graphics/fire_animation_data	12752	1602	0	3	0	0	0	0	0	0	0	0
+        31	         7	    136564	    0	      1	                            func@0x21310	/lib/x86_64-linux-gnu/libgomp.so.1	135952	5920	0	5	0	0	0	0	0	0	0	0
+        32	        31	    136636	    1	      1	          [Loop@0x21574 in func@0x21310]	/lib/x86_64-linux-gnu/libgomp.so.1	136564,136744,137399,137488,138077,138120,138200,138280,138384,138816,138896,138944,139008,139064,139197,139512,139680,139789,139918,139973,140080,140307,140346,140989,141024,141300,141422,141606,141764	173,398,80,473,37,77,30,102,427,74,46,43,52,74,44,50,78,78,42,104,67,32,402,34,67,39,110,52,20	0	7	0	0	0	0	0	0	0	0
+        33	        32	    136744	    1	      1	          [Loop@0x215bc in func@0x21310]	/lib/x86_64-linux-gnu/libgomp.so.1	136636,136744,137399,137488,138077,138120,138200,138280,138384,138816,138896,138944,139008,139064,139197,139512,139680,139789,139918,139973,140080,140346,140989,141024,141300,141422,141606,141764	101,398,80,473,37,77,30,102,427,74,46,43,52,74,44,50,78,78,42,104,67,402,34,67,39,110,52,20	0	6	0	0	0	0	0	0	0	0
+        34	         7	    136966	    0	      1	                            func@0x21310	/lib/x86_64-linux-gnu/libgomp.so.1	135952	5920	0	5	0	0	0	0	0	0	0	0
+        35	        -1	         0	    0	      0	                [Unknown stack frame(s)]	n/a	0	0	0	27	0	0	0	0	0	0	0	0

@@ -11,9 +11,8 @@ Matrix<size_t> burned_amounts_per_cell(
   Matrix<size_t> burned_amounts(landscape.width, landscape.height);
 
   for (size_t i = 0; i < n_replicates; i++) {
-    int contador = 0;
     Fire fire = simulate_fire(
-        landscape, ignition_cells, params, distance, elevation_mean, elevation_sd, contador, upper_limit
+        landscape, ignition_cells, params, distance, elevation_mean, elevation_sd, upper_limit
     );
 
     for (size_t col = 0; col < landscape.width; col++) {

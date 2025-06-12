@@ -12,6 +12,8 @@
 // CUDA specific includes
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
+#include <omp.h>
+
 
 // Helper for CUDA error checking
 #define CUDA_CHECK(err) { \
@@ -74,6 +76,7 @@ __global__ void evaluate_spread_kernel(
     int2* d_burned_ids,          // Array of currently burning/burned cell coords (device)
     curandState* d_rand_states,  // cuRAND states for each thread (device)
     unsigned int* d_newly_burned_count, // Atomic counter for new fires (device)
+    unsigned int* d_contador, // Added: Atomic counter for total neighbor evaluations
     const SimulationParams params, // Simulation parameters
     size_t width, size_t height,
     size_t start, size_t end,
@@ -105,6 +108,9 @@ __global__ void evaluate_spread_kernel(
 
     // Loop over the 8 neighbors
     for (int n = 0; n < 8; ++n) {
+        // Increment the global counter for each neighbor evaluated
+        atomicAdd(d_contador, 1); 
+
         int2 neighbour_coords = { burning_cell_coords.x + moves[n][0], burning_cell_coords.y + moves[n][1] };
 
         // Check if the neighbor is within the landscape boundaries
@@ -143,7 +149,7 @@ __global__ void evaluate_spread_kernel(
 Fire simulate_fire(
     const Landscape& landscape, const std::vector<std::pair<size_t, size_t>>& ignition_cells,
     SimulationParams params, float distance, float elevation_mean, float elevation_sd,
-    float upper_limit = 1.0
+    int &h_contador, float upper_limit = 1.0
 ) {
     size_t n_row = landscape.height;
     size_t n_col = landscape.width;
@@ -170,12 +176,14 @@ Fire simulate_fire(
     int2* d_burned_ids;
     curandState* d_rand_states;
     unsigned int* d_newly_burned_count;
+    unsigned int* d_contador; // Added: Device pointer for contador
 
     CUDA_CHECK(cudaMalloc(&d_cells, total_cells * sizeof(Cell)));
     CUDA_CHECK(cudaMalloc(&d_burned_bin, total_cells * sizeof(unsigned int)));
     CUDA_CHECK(cudaMalloc(&d_burned_ids, total_cells * sizeof(int2)));
     CUDA_CHECK(cudaMalloc(&d_newly_burned_count, sizeof(unsigned int)));
     CUDA_CHECK(cudaMalloc(&d_rand_states, total_cells * sizeof(curandState)));
+    CUDA_CHECK(cudaMalloc(&d_contador, sizeof(unsigned int))); // Allocate device memory for contador
     
 
     // --- 3. Copy Data from Host to Device ---
@@ -185,6 +193,7 @@ Fire simulate_fire(
     // Copy from our contiguous transfer vector
     CUDA_CHECK(cudaMemcpy(d_burned_bin, h_burned_bin_transfer.data(), total_cells * sizeof(unsigned int), cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(d_burned_ids, h_burned_ids.data(), ignition_cells.size() * sizeof(int2), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemset(d_contador, 0, sizeof(unsigned int))); // Initialize device contador to 0
 
     // --- 4. Simulation Loop ---
     size_t start = 0;
@@ -199,6 +208,8 @@ Fire simulate_fire(
     setup_rand_states<<<setup_blocks, threads_per_block>>>(d_rand_states, 1234, total_threads);
     CUDA_CHECK(cudaDeviceSynchronize());
 
+    double t = omp_get_wtime();
+
     while (end > start) {
         size_t work_size = end - start;
         int blocks = (work_size + threads_per_block - 1) / threads_per_block;
@@ -207,7 +218,8 @@ Fire simulate_fire(
         
         evaluate_spread_kernel<<<blocks, threads_per_block>>>(
             d_cells, d_burned_bin, d_burned_ids, d_rand_states,
-            d_newly_burned_count, params, n_col, n_row,
+            d_newly_burned_count, d_contador, // Passed d_contador to the kernel
+            params, n_col, n_row,
             start, end, distance, elevation_mean, elevation_sd, upper_limit
         );
         CUDA_CHECK(cudaGetLastError());
@@ -221,7 +233,7 @@ Fire simulate_fire(
         
         burned_ids_steps.push_back(end);
     }
-
+    
     // --- 5. Copy Results Back to Host ---
     size_t final_burned_count = end;
     h_burned_ids.resize(final_burned_count);
@@ -229,6 +241,7 @@ Fire simulate_fire(
     // Copy results back to the contiguous transfer vector
     CUDA_CHECK(cudaMemcpy(h_burned_bin_transfer.data(), d_burned_bin, total_cells * sizeof(unsigned int), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaMemcpy(h_burned_ids.data(), d_burned_ids, final_burned_count * sizeof(int2), cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(&h_contador, d_contador, sizeof(unsigned int), cudaMemcpyDeviceToHost)); // Copy contador back to host
 
     // --- 6. Free Device Memory ---
     CUDA_CHECK(cudaFree(d_cells));
@@ -236,6 +249,7 @@ Fire simulate_fire(
     CUDA_CHECK(cudaFree(d_burned_ids));
     CUDA_CHECK(cudaFree(d_rand_states));
     CUDA_CHECK(cudaFree(d_newly_burned_count));
+    CUDA_CHECK(cudaFree(d_contador)); // Free device memory for contador
 
     // --- 7. Convert results to the final 'Fire' struct format ---
     Matrix<bool> final_burned_bin(n_col, n_row);
@@ -251,7 +265,9 @@ Fire simulate_fire(
         final_burned_ids[i] = { (size_t)h_burned_ids[i].x, (size_t)h_burned_ids[i].y };
     }
 
-    std::cerr << "Celdas/ms: " << std::endl;
+    double t2 = omp_get_wtime() - t;
+    std::cerr << "Celdas/ms: " << h_contador*1000/(t2) << std::endl;
+
 
     return { n_col, n_row, final_burned_bin, final_burned_ids, burned_ids_steps };
 }

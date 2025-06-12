@@ -36,8 +36,9 @@ int main(int argc, char* argv[]) {
       0, 0.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2
     };
 
+    int contador = 0;
     Fire fire = simulate_fire(
-        landscape, ignition_cells, params, DISTANCE, ELEVATION_MEAN, ELEVATION_SD,
+        landscape, ignition_cells, params, DISTANCE, ELEVATION_MEAN, ELEVATION_SD, contador,
         UPPER_LIMIT
     );
     // std::cerr << "contador: " << contador << std::endl;

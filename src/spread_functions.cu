@@ -160,7 +160,7 @@ Fire simulate_fire(
     size_t end = ignition_cells.size();
     burned_ids_steps.push_back(end);
     
-    int threads_per_block = 256;
+    int threads_per_block = 1024;
 
     int total_threads = total_cells;
     int setup_blocks = (total_threads + threads_per_block - 1) / threads_per_block;
@@ -200,6 +200,9 @@ Fire simulate_fire(
     CUDA_CHECK(cudaMemcpy(h_burned_ids.data(), d_burned_ids, final_burned_count * sizeof(int2), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaMemcpy(&h_contador, d_contador, sizeof(unsigned int), cudaMemcpyDeviceToHost));
 
+    double t2 = omp_get_wtime() - t;
+    std::cerr << "Celdas/ms: " << h_contador*1000/(t2) << std::endl;
+    
     CUDA_CHECK(cudaFree(d_cells));
     CUDA_CHECK(cudaFree(d_burned_bin));
     CUDA_CHECK(cudaFree(d_burned_ids));
@@ -218,10 +221,6 @@ Fire simulate_fire(
     for(size_t i = 0; i < final_burned_count; ++i) {
         final_burned_ids[i] = { (size_t)h_burned_ids[i].x, (size_t)h_burned_ids[i].y };
     }
-
-    double t2 = omp_get_wtime() - t;
-    std::cerr << "Celdas/ms: " << h_contador*1000/(t2) << std::endl;
-
 
     return { n_col, n_row, final_burned_bin, final_burned_ids, burned_ids_steps };
 }

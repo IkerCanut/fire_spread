@@ -154,7 +154,7 @@ Fire simulate_fire(
     
     CUDA_CHECK(cudaMemcpy(d_burned_bin, h_burned_bin_transfer.data(), total_cells * sizeof(unsigned int), cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(d_burned_ids, h_burned_ids.data(), ignition_cells.size() * sizeof(int2), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemset(d_contador, 0, sizeof(unsigned int))); // Initialize device contador to 0
+    CUDA_CHECK(cudaMemset(d_contador, 0, sizeof(unsigned int)));
 
     size_t start = 0;
     size_t end = ignition_cells.size();
@@ -198,7 +198,7 @@ Fire simulate_fire(
     
     CUDA_CHECK(cudaMemcpy(h_burned_bin_transfer.data(), d_burned_bin, total_cells * sizeof(unsigned int), cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaMemcpy(h_burned_ids.data(), d_burned_ids, final_burned_count * sizeof(int2), cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(&h_contador, d_contador, sizeof(unsigned int), cudaMemcpyDeviceToHost)); // Copy contador back to host
+    CUDA_CHECK(cudaMemcpy(&h_contador, d_contador, sizeof(unsigned int), cudaMemcpyDeviceToHost));
 
     CUDA_CHECK(cudaFree(d_cells));
     CUDA_CHECK(cudaFree(d_burned_bin));

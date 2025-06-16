@@ -88,8 +88,15 @@ __global__ void evaluate_spread_kernel(
     constexpr float angles[8] = { M_PI * 3 / 4, M_PI    , M_PI * 5 / 4, M_PI / 2,
                                   M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
 
+    size_t tid  = threadIdx.x;      // thread id, dentro del bloque
+    __shared__ int suma_par;
+
+    if (tid==0)
+        suma_par = 0;
+    __syncthreads();
+
     for (int n = 0; n < 8; ++n) {
-        atomicAdd(d_contador, 1); 
+        atomicAdd(&suma_par, 1); 
 
         int2 neighbour_coords = { burning_cell_coords.x + moves[n][0], burning_cell_coords.y + moves[n][1] };
 
@@ -114,6 +121,10 @@ __global__ void evaluate_spread_kernel(
             }
         }
     }
+
+    __syncthreads();
+    if(tid == 0)
+        atomicAdd(d_contador, suma_par); 
 }
 
 Fire simulate_fire(

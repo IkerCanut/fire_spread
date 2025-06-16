@@ -1,4 +1,4 @@
-for i in $(seq 1 10);
+for i in $(seq 1 12);
 do
     for l in $(cat a);
     do

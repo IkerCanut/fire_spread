@@ -11,6 +11,11 @@
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <omp.h>
+#include <immintrin.h>
+#include <random>
+
+
+#define THRESHOLD 32
 
 #define CUDA_CHECK(err) { \
     cudaError_t e = err; \
@@ -18,6 +23,42 @@
         printf("Cuda error in file '%s' in line %i : %s.\n", __FILE__, __LINE__, cudaGetErrorString(e)); \
         exit(EXIT_FAILURE); \
     } \
+}
+
+alignas(32) constexpr int moves_x[8] = { -1, -1, -1, 0, 0, 1, 1, 1 };
+alignas(32) constexpr int moves_y[8] = { -1,  0,  1, -1, 1, -1, 0, 1 };
+
+constexpr float angles[8] = { M_PI * 3 / 4, M_PI,     M_PI * 5 / 4, M_PI / 2,
+  M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
+
+float spread_probability(
+    const Cell& burning, const Cell& neighbour, SimulationParams params, float angle,
+    float distance, float elevation_mean, float elevation_sd, float upper_limit = 1.0
+) {
+
+  float slope_term = sin(atan((neighbour.elevation - burning.elevation) / distance));
+  float wind_term = cos(angle - burning.wind_direction);
+  float elev_term = (neighbour.elevation - elevation_mean) / elevation_sd;
+
+  float linpred = params.independent_pred;
+
+  if (neighbour.vegetation_type == SUBALPINE) {
+    linpred += params.subalpine_pred;
+  } else if (neighbour.vegetation_type == WET) {
+    linpred += params.wet_pred;
+  } else if (neighbour.vegetation_type == DRY) {
+    linpred += params.dry_pred;
+  }
+
+  linpred += params.fwi_pred * neighbour.fwi;
+  linpred += params.aspect_pred * neighbour.aspect;
+
+  linpred += wind_term * params.wind_pred + elev_term * params.elevation_pred +
+             slope_term * params.slope_pred;
+
+  float prob = upper_limit / (1 + exp(-linpred));
+
+  return prob;
 }
 
 __global__ void setup_rand_states(curandState* states, unsigned long seed, size_t total) {
@@ -88,7 +129,7 @@ __global__ void evaluate_spread_kernel(
     constexpr float angles[8] = { M_PI * 3 / 4, M_PI    , M_PI * 5 / 4, M_PI / 2,
                                   M_PI * 3 / 2, M_PI / 4, 0,            M_PI * 7 / 4 };
 
-    size_t tid  = threadIdx.x;
+    size_t tid  = threadIdx.x;      // thread id, dentro del bloque
     __shared__ int suma_par;
 
     if (tid==0)
@@ -154,6 +195,11 @@ Fire simulate_fire(
     unsigned int* d_newly_burned_count;
     unsigned int* d_contador;
 
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    std::uniform_real_distribution<float> uniform_dist(0.0, 1.0);
+
+
     CUDA_CHECK(cudaMalloc(&d_cells, total_cells * sizeof(Cell)));
     CUDA_CHECK(cudaMalloc(&d_burned_bin, total_cells * sizeof(unsigned int)));
     CUDA_CHECK(cudaMalloc(&d_burned_ids, total_cells * sizeof(int2)));
@@ -180,28 +226,104 @@ Fire simulate_fire(
 
     double t = omp_get_wtime();
 
-    while (start < end) {
-        size_t work_size = end - start;
-        int blocks = (work_size + threads_per_block - 1) / threads_per_block;
+    if (end - start > THRESHOLD) {
 
-        CUDA_CHECK(cudaMemset(d_newly_burned_count, 0, sizeof(unsigned int)));
-        
-        evaluate_spread_kernel<<<blocks, threads_per_block>>>(
-            d_cells, d_burned_bin, d_burned_ids, d_rand_states,
-            d_newly_burned_count, d_contador,
-            params, n_col, n_row,
-            start, end, distance, elevation_mean, elevation_sd, upper_limit
-        );
-        CUDA_CHECK(cudaGetLastError());
-        CUDA_CHECK(cudaDeviceSynchronize());
+        while (start < end) {
+            size_t work_size = end - start;
+            int blocks = (work_size + threads_per_block - 1) / threads_per_block;
+            
+            CUDA_CHECK(cudaMemset(d_newly_burned_count, 0, sizeof(unsigned int)));
+            
+            evaluate_spread_kernel<<<blocks, threads_per_block>>>(
+                d_cells, d_burned_bin, d_burned_ids, d_rand_states,
+                d_newly_burned_count, d_contador,
+                params, n_col, n_row,
+                start, end, distance, elevation_mean, elevation_sd, upper_limit
+            );
+            CUDA_CHECK(cudaGetLastError());
+            CUDA_CHECK(cudaDeviceSynchronize());
+            
+            unsigned int newly_burned_host = 0;
+            CUDA_CHECK(cudaMemcpy(&newly_burned_host, d_newly_burned_count, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+            
+            start = end;
+            end += newly_burned_host;
+            
+            burned_ids_steps.push_back(end);
+        }
+    } else {
+        size_t end_forward = end;
+        for (size_t b = start; b < end; b++) {
+            size_t burning_cell_0 = d_burned_ids[b].x;
+            size_t burning_cell_1 = d_burned_ids[b].y;
 
-        unsigned int newly_burned_host = 0;
-        CUDA_CHECK(cudaMemcpy(&newly_burned_host, d_newly_burned_count, sizeof(unsigned int), cudaMemcpyDeviceToHost));
-        
-        start = end;
-        end += newly_burned_host;
-        
-        burned_ids_steps.push_back(end);
+            const Cell& burning_cell = landscape[{ burning_cell_0, burning_cell_1 }];
+
+            int neighbors_coords[2][8];
+
+            __m256i bc0 = _mm256_set1_epi32(int(burning_cell_0));
+            __m256i bc1 = _mm256_set1_epi32(int(burning_cell_1));
+            __m256i mvx = _mm256_load_si256((__m256i*)moves_x);
+            __m256i mvy = _mm256_load_si256((__m256i*)moves_y);
+
+            __m256i nc0 = _mm256_add_epi32(bc0, mvx);
+            __m256i nc1 = _mm256_add_epi32(bc1, mvy);
+
+            _mm256_storeu_si256((__m256i*)neighbors_coords[0], nc0);
+            _mm256_storeu_si256((__m256i*)neighbors_coords[1], nc1);
+            // ---------------------------------------------------
+
+            for (size_t n = 0; n < 8; n++) {
+                h_contador++;
+
+                int neighbour_cell_0 = neighbors_coords[0][n];
+                int neighbour_cell_1 = neighbors_coords[1][n];
+
+                // Is the cell in range?
+                bool out_of_range = 0 > neighbour_cell_0 || neighbour_cell_0 >= int(n_col) ||
+                                    0 > neighbour_cell_1 || neighbour_cell_1 >= int(n_row);
+
+                if (out_of_range)
+                continue;
+
+                auto burning_cell_coords = d_burned_ids[b];
+
+                int2 neighbour_coords = { burning_cell_coords.x + moves_x[n], burning_cell_coords.y + moves_y[n] };
+
+                if (neighbour_coords.x < 0 || neighbour_coords.x >= (int)n_col ||
+                    neighbour_coords.y < 0 || neighbour_coords.y >= (int)n_row) {
+                    continue;
+                }
+
+                size_t neighbour_flat_idx = neighbour_coords.y * n_col + neighbour_coords.x;
+
+                const Cell& neighbour_cell = landscape[{ neighbour_cell_0, neighbour_cell_1 }];
+
+                // Is the cell burnable?
+                bool burnable_cell =
+                    !d_burned_bin[neighbour_cell_0 * n_col + neighbour_cell_1] && neighbour_cell.burnable;
+
+                if (!burnable_cell)
+                continue;
+
+                // simulate fire
+                float prob = spread_probability(
+                    burning_cell, neighbour_cell, params, angles[n], distance, elevation_mean,
+                    elevation_sd, upper_limit
+                );
+
+                // Burn with probability prob (Bernoulli)
+                bool burn = uniform_dist(rng) < prob;
+
+                if (burn == 0)
+                continue;
+
+                // If burned, store id of recently burned cell and set 1 in burned_bin
+                end_forward += 1;
+                d_burned_ids[end_forward] = { neighbour_cell_0, neighbour_cell_1 };
+                d_burned_bin[{ neighbour_cell_0, neighbour_cell_1 }] = true;
+            }
+        }
     }
     
     size_t final_burned_count = end;
